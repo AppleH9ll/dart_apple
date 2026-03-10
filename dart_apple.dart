@@ -22,11 +22,6 @@ void main() {
     [2, 3, 3, 3], 
   ];
 
-  assert(students.length == grades.length);
-  for (var row in grades) {
-    assert(row.length == subjects.length);
-  }
-
   print('СВОДНАЯ ТАБЛИЦА УСПЕВАЕМОСТИ\n');
 
   String header = 'Студент'.padRight(20);
@@ -130,7 +125,7 @@ void main() {
     }
     if (twoCount == 1) {
       hasSingleTwo = true;
-      print('${students[i]} — предмет: ${subjects[twoIndex]}');
+      print('${students[i]} - предмет: ${subjects[twoIndex]}');
     }
   }
   if (!hasSingleTwo) {
