@@ -1,261 +1,181 @@
 import 'package:flutter/material.dart';
 
-void main() => runApp(const MyApp());
+void main() {
+  runApp(const NotesApp());
+}
 
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+class NotesApp extends StatelessWidget {
+  const NotesApp({super.key});
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      title: 'Заметки',
       debugShowCheckedModeBanner: false,
-      title: 'Практическая работа №1',
-      theme: ThemeData(useMaterial3: true, colorSchemeSeed: const Color.fromARGB(255, 58, 79, 199)),
-      home: const HomePage(),
+      theme: ThemeData(
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.indigo),
+        useMaterial3: true,
+      ),
+      home: const NotesScreen(),
     );
   }
 }
 
-class HomePage extends StatelessWidget {
-  const HomePage({super.key});
+class NotesScreen extends StatefulWidget {
+  const NotesScreen({super.key});
+
+  @override
+  State<NotesScreen> createState() => _NotesScreenState();
+}
+
+class _NotesScreenState extends State<NotesScreen> {
+  final TextEditingController _controller = TextEditingController();
+  final List<String> _notes = [];
+
+  // null  → режим добавления новой заметки
+  // число → редактируем заметку с этим индексом
+  int? _editingIndex;
+
+  // Добавление ИЛИ сохранение изменений
+  void _saveNote() {
+    final text = _controller.text.trim();
+    if (text.isEmpty) return; // не сохраняем пустые заметки
+
+    setState(() {
+      if (_editingIndex == null) {
+        _notes.add(text); // новая заметка
+      } else {
+        _notes[_editingIndex!] = text; // изменяем существующую
+        _editingIndex = null;
+      }
+      _controller.clear();
+    });
+  }
+
+  // Включаем режим редактирования
+  void _startEdit(int index) {
+    setState(() {
+      _editingIndex = index;
+      _controller.text = _notes[index];
+    });
+  }
+
+  // Отмена редактирования
+  void _cancelEdit() {
+    setState(() {
+      _editingIndex = null;
+      _controller.clear();
+    });
+  }
+
+  // Удаление заметки
+  void _deleteNote(int index) {
+    setState(() {
+      _notes.removeAt(index);
+      if (_editingIndex == index) {
+        _editingIndex = null;
+        _controller.clear();
+      } else if (_editingIndex != null && _editingIndex! > index) {
+        _editingIndex = _editingIndex! - 1; // сдвигаем индекс после удаления
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Выбор макета')),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          _menuTile(context, '1. Простой макет: Вход', const SimpleLoginScreen()),
-          _menuTile(context, '2. Простой макет: Профиль', const SimpleProfileScreen()),
-          _menuTile(context, '3. Сложный макет: Карточка товара', const ComplexProductScreen()),
-          _menuTile(context, '4. Сложный макет: Лента с поиском', const ComplexFeedScreen()),
-        ],
-      ),
-    );
-  }
-  Widget _menuTile(BuildContext ctx, String title, Widget page) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 12),
-      child: ListTile(
-        title: Text(title),
-        trailing: const Icon(Icons.chevron_right),
-        onTap: () => Navigator.push(ctx, MaterialPageRoute(builder: (_) => page)),
-      ),
-    );
-  }
-}
+    final bool isEditing = _editingIndex != null;
 
-// ==================== ПРОСТОЙ МАКЕТ 1: ВХОД ====================
-class SimpleLoginScreen extends StatelessWidget {
-  const SimpleLoginScreen({super.key});
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Вход')),
-      body: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            const Icon(Icons.lock_outline, size: 80, color: Colors.indigo),
-            const SizedBox(height: 32),
-            TextField(
-              decoration: InputDecoration(
-                labelText: 'Email',
-                prefixIcon: const Icon(Icons.email),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-              ),
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              obscureText: true,
-              decoration: InputDecoration(
-                labelText: 'Пароль',
-                prefixIcon: const Icon(Icons.password),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-              ),
-            ),
-            const SizedBox(height: 24),
-            FilledButton(
-              onPressed: () {},
-              style: FilledButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 16)),
-              child: const Text('Войти'),
-            ),
-            const SizedBox(height: 12),
-            TextButton(onPressed: () {}, child: const Text('Забыли пароль?')),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-// ==================== ПРОСТОЙ МАКЕТ 2: ПРОФИЛЬ ====================
-class SimpleProfileScreen extends StatelessWidget {
-  const SimpleProfileScreen({super.key});
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Профиль')),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          const Center(
-            child: CircleAvatar(radius: 50, child: Icon(Icons.person, size: 50)),
-          ),
-          const SizedBox(height: 12),
-          const Center(child: Text('Иванов И.И.', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold))),
-          const Center(child: Text('Студент группы П-577-666', style: TextStyle(color: Colors.grey))),
-          const SizedBox(height: 24),
-          _infoCard(Icons.email, 'Email', 'student@example.com'),
-          _infoCard(Icons.phone, 'Телефон', '+7 (999) 123-45-67'),
-          _infoCard(Icons.location_on, 'Город', 'Москва'),
-        ],
-      ),
-    );
-  }
-  Widget _infoCard(IconData icon, String label, String value) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 8),
-      child: ListTile(
-        leading: Icon(icon, color: Colors.indigo),
-        title: Text(label, style: const TextStyle(fontSize: 12, color: Colors.grey)),
-        subtitle: Text(value, style: const TextStyle(fontSize: 16)),
-      ),
-    );
-  }
-}
-
-// ==================== СЛОЖНЫЙ МАКЕТ 3: КАРТОЧКА ТОВАРА ====================
-class ComplexProductScreen extends StatefulWidget {
-  const ComplexProductScreen({super.key});
-  @override
-  State<ComplexProductScreen> createState() => _ComplexProductScreenState();
-}
-
-class _ComplexProductScreenState extends State<ComplexProductScreen> {
-  int _quantity = 1;
-  @override
-  Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Карточка товара'),
-        actions: [IconButton(icon: const Icon(Icons.favorite_border), onPressed: () {})],
+        title: const Text('Заметки'),
+        centerTitle: true,
       ),
-      body: ListView(
-        children: [
-          Container(
-            height: 240,
-            color: Colors.indigo.shade50,
-            child: const Center(child: Icon(Icons.image, size: 100, color: Colors.indigo)),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text('Смартфон X', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
-                const SizedBox(height: 8),
-                const Row(children: [
-                  Icon(Icons.star, color: Colors.amber, size: 20),
-                  Icon(Icons.star, color: Colors.amber, size: 20),
-                  Icon(Icons.star, color: Colors.amber, size: 20),
-                  Icon(Icons.star, color: Colors.amber, size: 20),
-                  Icon(Icons.star_half, color: Colors.amber, size: 20),
-                  SizedBox(width: 8),
-                  Text('4.5 (128 отзывов)'),
-                ]),
-                const SizedBox(height: 12),
-                const Text('79 990 ₽', style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.indigo)),
-                const SizedBox(height: 16),
-                const Divider(),
-                const Text('Описание', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
-                const SizedBox(height: 8),
-                const Text('Отличный смартфон с большим экраном, мощным процессором и камерой 228 Мп.'),
-                const SizedBox(height: 16),
-                Row(
-                  children: [
-                    const Text('Количество: ', style: TextStyle(fontSize: 16)),
-                    IconButton(
-                      icon: const Icon(Icons.remove_circle_outline),
-                      onPressed: () => setState(() => _quantity = _quantity > 1 ? _quantity - 1 : 1),
-                    ),
-                    Text('$_quantity', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                    IconButton(
-                      icon: const Icon(Icons.add_circle_outline),
-                      onPressed: () => setState(() => _quantity++),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-      bottomNavigationBar: Padding(
+      body: Padding(
         padding: const EdgeInsets.all(16),
-        child: FilledButton.icon(
-          onPressed: () {},
-          icon: const Icon(Icons.shopping_cart),
-          label: const Text('Добавить в корзину'),
-          style: FilledButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 16)),
-        ),
-      ),
-    );
-  }
-}
+        child: Column(
+          children: [
+            // Поле ввода
+            TextField(
+              controller: _controller,
+              minLines: 1,
+              maxLines: 3,
+              decoration: InputDecoration(
+                hintText: 'Введите текст заметки...',
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
 
-// ==================== СЛОЖНЫЙ МАКЕТ 4: ЛЕНТА С ПОИСКОМ ====================
-class ComplexFeedScreen extends StatelessWidget {
-  const ComplexFeedScreen({super.key});
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      body: CustomScrollView(
-        slivers: [
-          const SliverAppBar(
-            expandedHeight: 200,
-            pinned: true,
-            flexibleSpace: FlexibleSpaceBar(
-              title: Text('Лента'),
-              background: DecoratedBox(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [Colors.indigo, Colors.indigoAccent],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
+            // Кнопки
+            Row(
+              children: [
+                Expanded(
+                  child: FilledButton.icon(
+                    onPressed: _saveNote,
+                    icon: Icon(isEditing ? Icons.check : Icons.save),
+                    label: Text(isEditing ? 'Сохранить изменения' : 'Сохранить'),
                   ),
                 ),
-              ),
+                if (isEditing) ...[
+                  const SizedBox(width: 12),
+                  OutlinedButton(
+                    onPressed: _cancelEdit,
+                    child: const Text('Отмена'),
+                  ),
+                ],
+              ],
             ),
-          ),
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: TextField(
-                decoration: InputDecoration(
-                  hintText: 'Поиск...',
-                  prefixIcon: const Icon(Icons.search),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(30)),
-                ),
-              ),
+            const SizedBox(height: 16),
+
+            // Список заметок
+            Expanded(
+              child: _notes.isEmpty
+                  ? const Center(
+                      child: Text(
+                        'Заметок пока нет',
+                        style: TextStyle(color: Colors.grey, fontSize: 16),
+                      ),
+                    )
+                  : ListView.builder(
+                      itemCount: _notes.length,
+                      itemBuilder: (context, index) {
+                        return Card(
+                          margin: const EdgeInsets.only(bottom: 8),
+                          child: ListTile(
+                            leading: CircleAvatar(child: Text('${index + 1}')),
+                            title: Text(_notes[index]),
+                            trailing: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                IconButton(
+                                  icon: const Icon(Icons.edit,
+                                      color: Colors.blue),
+                                  tooltip: 'Редактировать',
+                                  onPressed: () => _startEdit(index),
+                                ),
+                                IconButton(
+                                  icon: const Icon(Icons.delete,
+                                      color: Colors.red),
+                                  tooltip: 'Удалить',
+                                  onPressed: () => _deleteNote(index),
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      },
+                    ),
             ),
-          ),
-          SliverList(
-            delegate: SliverChildBuilderDelegate(
-              (context, index) => Card(
-                margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                child: ListTile(
-                  leading: CircleAvatar(child: Text('${index + 1}')),
-                  title: Text('Новость ${index + 1}'),
-                  subtitle: const Text('Краткое описание новости...'),
-                  trailing: const Icon(Icons.chevron_right),
-                ),
-              ),
-              childCount: 10,
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
