@@ -1,27 +1,36 @@
 import 'package:equatable/equatable.dart';
+import 'note.dart';
 
 class NotesState extends Equatable {
   const NotesState({
     this.notes = const [],
-    this.editingIndex,
+    this.editingId,
   });
 
-  final List<String> notes;
-  final int? editingIndex;
+  final List<Note> notes;
+  final int? editingId;
 
-  bool get isEditing => editingIndex != null;
+  bool get isEditing => editingId != null;
+
+  Note? get editingNote {
+    if (editingId == null) return null;
+    for (final n in notes) {
+      if (n.id == editingId) return n;
+    }
+    return null;
+  }
 
   NotesState copyWith({
-    List<String>? notes,
-    int? editingIndex,
+    List<Note>? notes,
+    int? editingId,
     bool clearEditing = false,
   }) {
     return NotesState(
       notes: notes ?? this.notes,
-      editingIndex: clearEditing ? null : (editingIndex ?? this.editingIndex),
+      editingId: clearEditing ? null : (editingId ?? this.editingId),
     );
   }
 
   @override
-  List<Object?> get props => [notes, editingIndex];
+  List<Object?> get props => [notes, editingId];
 }

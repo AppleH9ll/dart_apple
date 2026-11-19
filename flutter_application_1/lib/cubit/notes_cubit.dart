@@ -1,14 +1,17 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'note.dart';
 import 'notes_state.dart';
 
 class NotesCubit extends Cubit<NotesState> {
   NotesCubit() : super(const NotesState());
 
-  /// Единая точка сохранения — сама определяет,
-  /// добавить новую заметку или обновить существующую.
+  int _nextId = 1;
+
+  //Сохранение / редактирование
+
   void saveNote(String text) {
     final trimmed = text.trim();
-    if (trimmed.isEmpty) return; // пустые заметки не сохраняем
+    if (trimmed.isEmpty) return;
 
     if (state.isEditing) {
       _updateNote(trimmed);
@@ -18,39 +21,56 @@ class NotesCubit extends Cubit<NotesState> {
   }
 
   void _addNote(String text) {
-    emit(state.copyWith(notes: [...state.notes, text]));
+    final newNote = Note(id: _nextId++, text: text);
+    emit(state.copyWith(notes: [...state.notes, newNote]));
   }
 
   void _updateNote(String text) {
-    final updated = List<String>.from(state.notes);
-    updated[state.editingIndex!] = text;
+    final updated = state.notes
+        .map((n) => n.id == state.editingId ? n.copyWith(text: text) : n)
+        .toList();
     emit(state.copyWith(notes: updated, clearEditing: true));
   }
 
-  /// Включить режим редактирования для заметки с указанным индексом.
-  void startEditing(int index) {
-    if (index < 0 || index >= state.notes.length) return;
-    emit(state.copyWith(editingIndex: index));
+  void startEditing(int id) {
+    if (!state.notes.any((n) => n.id == id)) return;
+    emit(state.copyWith(editingId: id));
   }
 
-  /// Отменить редактирование.
   void cancelEditing() {
     emit(state.copyWith(clearEditing: true));
   }
 
-  /// Удалить заметку. При необходимости — скорректировать индекс редактирования.
-  void deleteNote(int index) {
-    if (index < 0 || index >= state.notes.length) return;
+  //Удаление
 
-    final updated = List<String>.from(state.notes)..removeAt(index);
+  void deleteNote(int id) {
+    final updated = state.notes.where((n) => n.id != id).toList();
+    emit(NotesState(
+      notes: updated,
+      editingId: state.editingId == id ? null : state.editingId,
+    ));
+  }
 
-    int? newEditing = state.editingIndex;
-    if (newEditing == index) {
-      newEditing = null; // удалили редактируемую — выходим из режима
-    } else if (newEditing != null && newEditing > index) {
-      newEditing = newEditing - 1; // индекс сдвинулся после удаления
-    }
+  //Жестовые действия
 
-    emit(NotesState(notes: updated, editingIndex: newEditing));
+  /// Двойной тап: переключить статус «важная».
+  void toggleImportant(int id) {
+    final updated = state.notes
+        .map((n) => n.id == id ? n.copyWith(isImportant: !n.isImportant) : n)
+        .toList();
+    emit(state.copyWith(notes: updated));
+  }
+
+  /// Свайп вправо: снять статус «важная», если он установлен.
+  /// Возвращает true, если статус действительно был снят
+  /// (для отображения SnackBar в UI).
+  bool restoreNormal(int id) {
+    final note = state.notes.firstWhere((n) => n.id == id);
+    if (!note.isImportant) return false;
+
+    final updated =
+        state.notes.map((n) => n.id == id ? n.copyWith(isImportant: false) : n).toList();
+    emit(state.copyWith(notes: updated));
+    return true;
   }
 }
